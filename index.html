@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Search & Downloader</title>
+  <style>
+    /* Reset & Base */
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121212;
+      color: #e0e0e0;
+      margin: 0;
+      padding: 20px 40px 180px; /* bottom padding for fixed footer */
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    h1 {
+      font-weight: 700;
+      color: #00d8ff;
+      margin-bottom: 30px;
+      text-shadow: 0 0 10px #00d8ffaa;
+      user-select: none;
+    }
+    /* Search area */
+    .search-container {
+      width: 100%;
+      max-width: 700px;
+      display: flex;
+      gap: 10px;
+      margin-bottom: 40px;
+    }
+    #searchQuery {
+      flex-grow: 1;
+      padding: 14px 18px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      outline-offset: 2px;
+      outline-color: #00d8ff;
+      background: #222;
+      color: #eee;
+      transition: background-color 0.3s ease;
+    }
+    #searchQuery::placeholder {
+      color: #777;
+    }
+    #searchQuery:focus {
+      background: #333;
+    }
+    button {
+      background: linear-gradient(135deg, #00d8ff, #006caa);
+      border: none;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      padding: 14px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 15px #00d8ff80;
+      transition: background 0.3s ease;
+      user-select: none;
+      flex-shrink: 0;
+    }
+    button:hover {
+      background: linear-gradient(135deg, #00b3ff, #005a87);
+    }
+    /* Results container */
+    #searchResults {
+      width: 100%;
+      max-width: 700px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
+      gap: 20px;
+    }
+    /* Video card */
+    .video-result {
+      background: #1f1f1f;
+      border-radius: 12px;
+      box-shadow: 0 3px 8px #000000aa;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      transition: box-shadow 0.3s ease;
+      user-select: none;
+    }
+    .video-result:hover {
+      box-shadow: 0 6px 20px #00d8ffbb;
+    }
+    .video-result img {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      object-fit: cover;
+      border-bottom: 1px solid #333;
+    }
+    .video-content {
+      padding: 16px 18px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .video-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #cfd8dc;
+      margin: 0 0 12px;
+      min-height: 48px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .format-select {
+      margin-bottom: 14px;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: none;
+      background: #222;
+      color: #eee;
+      width: 100%;
+      max-width: 140px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+    .format-select:hover, .format-select:focus {
+      background: #333;
+      outline: none;
+    }
+    .btn-download {
+      background: #00d8ff;
+      color: #000;
+      font-weight: 700;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px #00d8ffaa;
+      transition: background 0.3s ease;
+      width: 100%;
+      user-select: none;
+    }
+    .btn-download:hover {
+      background: #00b3ff;
+    }
+    /* Progress bar */
+    .progress-container {
+      margin-top: 12px;
+      width: 100%;
+      height: 16px;
+      background: #333;
+      border-radius: 8px;
+      overflow: hidden;
+      display: none;
+      box-shadow: inset 0 0 6px #000000aa;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00d8ff, #006caa);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+    .message {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #80deea;
+      min-height: 18px;
+      font-style: italic;
+    }
+    .download-link {
+      display: none;
+      margin-top: 12px;
+      font-weight: 600;
+      color: #00e5ff;
+      text-decoration: none;
+      user-select: text;
+      word-break: break-word;
+      font-size: 14px;
+    }
+    .download-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Download Queue fixed at bottom */
+    #downloadQueue {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 160px;
+      overflow-y: auto;
+      background: #121212;
+      border-top: 4px solid #00d8ff;
+      padding: 12px 32px;
+      box-sizing: border-box;
+      color: #00d8ff;
+      font-weight: 700;
+      font-family: 'Consolas', monospace;
+      z-index: 9999;
+      box-shadow: 0 -2px 10px #00d8ff44;
+    }
+    #downloadQueue h2 {
+      margin: 0 0 10px 0;
+      font-size: 20px;
+      user-select: none;
+    }
+    .queue-item {
+      margin-bottom: 10px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    .queue-progress-container {
+      flex-grow: 1;
+      height: 14px;
+      background: #333;
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: inset 0 0 4px #000000bb;
+    }
+    .queue-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #00d8ff, #004f7a);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    .queue-link {
+      color: #00e5ff;
+      text-decoration: none;
+      font-weight: 700;
+      white-space: nowrap;
+      user-select: text;
+    }
+    .queue-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 480px) {
+      body {
+        padding: 16px 16px 180px;
+      }
+      .search-container {
+        flex-direction: column;
+        gap: 12px;
+      }
+      button {
+        width: 100%;
+      }
+      #searchResults {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>YouTube Search & Downloader</h1>
+
+  <div class="search-container">
+    <input type="text" id="searchQuery" placeholder="Search YouTube videos..." aria-label="Search YouTube videos" />
+    <button id="searchButton" onclick="searchVideos()" aria-label="Search">Search</button>
+  </div>
+
+  <div id="searchResults" role="region" aria-live="polite" aria-label="Search results"></div>
+
+  <!-- Download Queue fixed at bottom -->
+  <section id="downloadQueue" aria-label="Download queue" style="display:none;">
+    <h2>Download Queue</h2>
+    <div id="queueItems"></div>
+  </section>
+
+  <script>
+    const downloadQueue = {}; // track downloads by sanitized id
+
+    function sanitizeId(text) {
+      return text.replace(/\W/g, '_').toLowerCase();
+    }
+
+    async function searchVideos() {
+      const queryInput = document.getElementById('searchQuery');
+      const query = queryInput.value.trim();
+      if (!query) {
+        alert('Please enter a search query.');
+        queryInput.focus();
+        return;
+      }
+      const resultsContainer = document.getElementById('searchResults');
+      resultsContainer.innerHTML = `<p style="font-style: italic; color:#666;">Searching for "${query}"...</p>`;
+      try {
+        const response = await fetch('/search', {
+          method: 'POST',
+          body: new URLSearchParams({ 'query': query }),
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+          displaySearchResults(data.results);
+        } else {
+          resultsContainer.innerHTML = `<p style="color:#ff6b6b;">❌ ${data.message}</p>`;
+        }
+      } catch (err) {
+        resultsContainer.innerHTML = `<p style="color:#ff6b6b;">❌ Network or server error.</p>`;
+        console.error(err);
+      }
+    }
+
+    function displaySearchResults(results) {
+      const container = document.getElementById('searchResults');
+      container.innerHTML = '';
+      if (results.length === 0) {
+        container.innerHTML = `<p style="font-style: italic; color:#999;">No videos found.</p>`;
+        return;
+      }
+      results.forEach((video, index) => {
+        const videoId = sanitizeId(video.title) + '-' + index;
+        const div = document.createElement('article');
+        div.className = 'video-result';
+        div.setAttribute('tabindex', '0');
+        div.setAttribute('aria-label', `Video titled ${video.title}`);
+        div.innerHTML = `
+          <img src="${video.thumbnail}" alt="Thumbnail for ${video.title}" loading="lazy" />
+          <div class="video-content">
+            <h3 class="video-title">${video.title}</h3>
+            <label for="format-${videoId}" style="margin-bottom:6px;display:block;">Choose format:</label>
+            <select id="format-${videoId}" class="format-select" aria-label="Select format for ${video.title}">
+              <option value="video">Video (MP4)</option>
+              <option value="audio">Audio (MP3)</option>
+            </select>
+            <button class="btn-download" onclick="startDownload('${video.url}', '${videoId}', \`${video.title.replace(/`/g, '')}\`)">Download</button>
+            <div class="progress-container" id="progress-container-${videoId}">
+              <div class="progress-bar" id="progress-bar-${videoId}"></div>
+            </div>
+            <div class="message" id="message-${videoId}" aria-live="polite" aria-atomic="true"></div>
+            <a class="download-link" id="view-button-${videoId}" href="#" target="_blank" rel="noopener noreferrer" style="display:none;">⬇️ View Download</a>
+          </div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function startDownload(url, videoId, title) {
+      const formatSelect = document.getElementById(`format-${videoId}`);
+      const format = formatSelect.value;
+      const message = document.getElementById(`message-${videoId}`);
+      const bar = document.getElementById(`progress-bar-${videoId}`);
+      const container = document.getElementById(`progress-container-${videoId}`);
+      const viewBtn = document.getElementById(`view-button-${videoId}`);
+
+      message.textContent = "Starting download...";
+      container.style.display = "block";
+      bar.style.width = "0%";
+      viewBtn.style.display = "none";
+
+      addToQueue(title, url);
+
+      fetch('/download', {
+        method: 'POST',
+        body: new URLSearchParams({ 'url': url, 'format': format }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+      }).then(() => {
+        simulateProgress(videoId, message, bar, viewBtn, title);
+      }).catch(() => {
+        message.textContent = "❌ Failed to start download.";
+      });
+    }
+
+    function simulateProgress(videoId, message, bar, viewBtn, title) {
+      let progress = 0;
+      const interval = setInterval(() => {
+        if (progress < 98) {
+          progress += Math.random() * 5;
+          bar.style.width = Math.min(progress, 98) + "%";
+          updateQueueProgress(title, progress);
+        }
+      }, 400);
+
+      const checkInterval = setInterval(() => {
+        fetch('/check-completed')
+          .then(res => res.json())
+          .then(data => {
+            if (data.status === 'finished') {
+              clearInterval(interval);
+              clearInterval(checkInterval);
+              bar.style.width = "100%";
+              message.textContent = "✅ Download complete!";
+              viewBtn.href = data.path;
+              viewBtn.style.display = "inline-block";
+              updateQueueProgress(title, 100, data.path);
+            }
+          })
+          .catch(() => {
+            // Ignore fetch errors silently
+          });
+      }, 2500);
+    }
+
+    function addToQueue(title, url) {
+      const queueDiv = document.getElementById('downloadQueue');
+      const queueItems = document.getElementById('queueItems');
+      queueDiv.style.display = "block";
+
+      const id = sanitizeId(title);
+
+      if (downloadQueue[id]) return;
+
+      const item = document.createElement('div');
+      item.className = 'queue-item';
+      item.id = `queue-item-${id}`;
+      item.setAttribute('aria-label', `Downloading ${title}`);
+      item.innerHTML = `
+        <div>${title}</div>
+        <div class="queue-progress-container">
+          <div class="queue-progress-bar" id="queue-progress-${id}"></div>
+        </div>
+        <a href="#" class="queue-link" id="queue-link-${id}" target="_blank" rel="noopener noreferrer" style="display:none;">⬇️ Download</a>
+      `;
+      queueItems.appendChild(item);
+      downloadQueue[id] = { progress: 0, elementId: id, url: url };
+    }
+
+    function updateQueueProgress(title, percent, downloadUrl = null) {
+      const id = sanitizeId(title);
+      const bar = document.getElementById(`queue-progress-${id}`);
+      const link = document.getElementById(`queue-link-${id}`);
+      if (!bar) return;
+      bar.style.width = percent + "%";
+
+      if (percent >= 100 && downloadUrl) {
+        link.href = downloadUrl;
+        link.style.display = "inline";
+      }
+    }
+  </script>
+
+</body>
+</html>
