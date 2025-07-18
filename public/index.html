@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTech - Professional YouTube Downloader</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* Header */
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 0;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .logo i {
+      font-size: 2rem;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: #666;
+      text-decoration: none;
+      font-weight: 500;
+      transition: color 0.3s ease;
+    }
+
+    .nav-links a:hover {
+      color: #667eea;
+    }
+
+    /* Hero Section */
+    .hero {
+      text-align: center;
+      padding: 4rem 0;
+      color: white;
+    }
+
+    .hero h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* Search Section */
+    .search-section {
+      background: white;
+      border-radius: 20px;
+      padding: 3rem;
+      margin: 2rem 0;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+
+    .search-form {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 300px;
+      padding: 1rem 1.5rem;
+      border: 2px solid #e1e5e9;
+      border-radius: 12px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: #f8f9fa;
+    }
+
+    .search-input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .search-btn {
+      padding: 1rem 2rem;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-width: 140px;
+      justify-content: center;
+    }
+
+    .search-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .search-btn:active {
+      transform: translateY(0);
+    }
+
+    .search-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: #f8f9fa;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+
+    .feature:hover {
+      background: #e9ecef;
+      transform: translateY(-2px);
+    }
+
+    .feature-icon {
+      width: 50px;
+      height: 50px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.2rem;
+    }
+
+    /* Results Section */
+    .results-section {
+      margin: 3rem 0;
+    }
+
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .results-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: white;
+    }
+
+    .results-count {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      color: white;
+      font-weight: 500;
+    }
+
+    .video-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 2rem;
+    }
+
+    .video-card {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .video-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .video-thumbnail {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .video-thumbnail img {
+      width: 100%;
+      height: 200px;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .video-card:hover .video-thumbnail img {
+      transform: scale(1.05);
+    }
+
+    .play-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60px;
+      height: 60px;
+      background: rgba(0, 0, 0, 0.7);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .video-card:hover .play-overlay {
+      opacity: 1;
+    }
+
+    .video-content {
+      padding: 1.5rem;
+    }
+
+    .video-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .download-options {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .format-select {
+      flex: 1;
+      padding: 0.75rem;
+      border: 2px solid #e1e5e9;
+      border-radius: 8px;
+      background: #f8f9fa;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .format-select:focus {
+      outline: none;
+      border-color: #667eea;
+      background: white;
+    }
+
+    .download-btn {
+      flex: 2;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .download-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+    }
+
+    .download-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .progress-container {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e9ecef;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      width: 0%;
+      transition: width 0.3s ease;
+      border-radius: 4px;
+    }
+
+    .progress-text {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: #666;
+      text-align: center;
+    }
+
+    .download-link {
+      display: none;
+      margin-top: 1rem;
+      padding: 0.75rem;
+      background: #f8f9fa;
+      border: 2px dashed #667eea;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .download-link a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .download-link a:hover {
+      text-decoration: underline;
+    }
+
+    /* Loading States */
+    .loading {
+      text-align: center;
+      padding: 3rem;
+      color: white;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-top: 4px solid white;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Error States */
+    .error-message {
+      background: #f8d7da;
+      color: #721c24;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border: 1px solid #f5c6cb;
+    }
+
+    .success-message {
+      background: #d4edda;
+      color: #155724;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1rem 0;
+      border: 1px solid #c3e6cb;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .hero h1 {
+        font-size: 2.5rem;
+      }
+
+      .search-section {
+        padding: 2rem 1.5rem;
+        margin: 1rem;
+        border-radius: 16px;
+      }
+
+      .search-form {
+        flex-direction: column;
+      }
+
+      .search-input {
+        min-width: auto;
+      }
+
+      .video-grid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+      }
+
+      .nav-links {
+        display: none;
+      }
+
+      .results-header {
+        flex-direction: column;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 0 15px;
+      }
+
+      .hero {
+        padding: 2rem 0;
+      }
+
+      .hero h1 {
+        font-size: 2rem;
+      }
+
+      .download-options {
+        flex-direction: column;
+      }
+    }
+
+    /* Animations */
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="header">
+    <div class="container">
+      <div class="header-content">
+        <a href="#" class="logo">
+          <i class="fab fa-youtube"></i>
+          <span>YouTech</span>
+        </a>
+        <nav>
+          <ul class="nav-links">
+            <li><a href="#home">Home</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="home">
+    <div class="container">
+      <h1>Download YouTube Videos</h1>
+      <p>Fast, free, and secure YouTube video downloader. Download your favorite videos in high quality with just one click.</p>
+    </div>
+  </section>
+
+  <!-- Search Section -->
+  <section class="search-section">
+    <div class="container">
+      <form class="search-form" onsubmit="searchVideos(event)">
+        <input 
+          type="text" 
+          id="searchQuery" 
+          class="search-input" 
+          placeholder="Search YouTube videos or paste a YouTube URL..."
+          required
+        >
+        <button type="submit" class="search-btn" id="searchButton">
+          <i class="fas fa-search"></i>
+          <span>Search</span>
+        </button>
+      </form>
+
+      <div class="features">
+        <div class="feature">
+          <div class="feature-icon">
+            <i class="fas fa-download"></i>
+          </div>
+          <div>
+            <h4>High Quality Downloads</h4>
+            <p>Download videos in HD quality</p>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i class="fas fa-music"></i>
+          </div>
+          <div>
+            <h4>Audio Extraction</h4>
+            <p>Extract MP3 audio from videos</p>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i class="fas fa-bolt"></i>
+          </div>
+          <div>
+            <h4>Fast Processing</h4>
+            <p>Quick and efficient downloads</p>
+          </div>
+        </div>
+        <div class="feature">
+          <div class="feature-icon">
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <div>
+            <h4>Safe & Secure</h4>
+            <p>No malware or unwanted software</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Results Section -->
+  <section class="results-section">
+    <div class="container">
+      <div id="searchResults"></div>
+    </div>
+  </section>
+
+  <script>
+    let searchResults = [];
+
+    function sanitizeId(text) {
+      return text.replace(/\W/g, '_').toLowerCase().substring(0, 50);
+    }
+
+    async function searchVideos(event) {
+      event.preventDefault();
+      
+      const queryInput = document.getElementById('searchQuery');
+      const searchButton = document.getElementById('searchButton');
+      const query = queryInput.value.trim();
+      
+      if (!query) {
+        showError('Please enter a search query or YouTube URL.');
+        return;
+      }
+
+      // Update button state
+      searchButton.disabled = true;
+      searchButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Searching...</span>';
+
+      const resultsContainer = document.getElementById('searchResults');
+      resultsContainer.innerHTML = `
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Searching for "${query}"...</p>
+        </div>
+      `;
+
+      try {
+        const response = await fetch('/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: query })
+        });
+
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+          searchResults = data.results;
+          displaySearchResults(data.results, query);
+        } else {
+          showError(data.message || 'Search failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Search error:', error);
+        showError('Network error. Please check your connection and try again.');
+      } finally {
+        // Reset button state
+        searchButton.disabled = false;
+        searchButton.innerHTML = '<i class="fas fa-search"></i><span>Search</span>';
+      }
+    }
+
+    function displaySearchResults(results, query) {
+      const container = document.getElementById('searchResults');
+      
+      if (results.length === 0) {
+        container.innerHTML = `
+          <div class="loading">
+            <i class="fas fa-search" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+            <p>No videos found for "${query}". Try different keywords.</p>
+          </div>
+        `;
+        return;
+      }
+
+      const resultsHtml = `
+        <div class="results-header fade-in">
+          <h2 class="results-title">Search Results</h2>
+          <div class="results-count">${results.length} videos found</div>
+        </div>
+        <div class="video-grid">
+          ${results.map((video, index) => {
+            const videoId = sanitizeId(video.title) + '-' + index;
+            return `
+              <div class="video-card fade-in" style="animation-delay: ${index * 0.1}s">
+                <div class="video-thumbnail">
+                  <img src="${video.thumbnail}" alt="${video.title}" loading="lazy" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDMyMCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIzMjAiIGhlaWdodD0iMTgwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0xNDQgNzJMMTc2IDkwTDE0NCAxMDhWNzJaIiBmaWxsPSIjOTlBM0E0Ii8+Cjwvc3ZnPgo='">
+                  <div class="play-overlay">
+                    <i class="fas fa-play"></i>
+                  </div>
+                </div>
+                <div class="video-content">
+                  <h3 class="video-title">${video.title}</h3>
+                  <div class="download-options">
+                    <select class="format-select" id="format-${videoId}">
+                      <option value="video">Video (MP4)</option>
+                      <option value="audio">Audio (MP3)</option>
+                    </select>
+                    <button class="download-btn" onclick="startDownload('${video.url}', '${videoId}', \`${video.title.replace(/`/g, '\\`').replace(/\\/g, '\\\\')}\`)">
+                      <i class="fas fa-download"></i>
+                      <span>Download</span>
+                    </button>
+                  </div>
+                  <div class="progress-container" id="progress-container-${videoId}">
+                    <div class="progress-bar">
+                      <div class="progress-fill" id="progress-fill-${videoId}"></div>
+                    </div>
+                    <div class="progress-text" id="progress-text-${videoId}">Preparing download...</div>
+                  </div>
+                  <div class="download-link" id="download-link-${videoId}">
+                    <a href="#" target="_blank" rel="noopener noreferrer">
+                      <i class="fas fa-external-link-alt"></i>
+                      <span>Download Ready</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+
+      container.innerHTML = resultsHtml;
+    }
+
+    async function startDownload(url, videoId, title) {
+      const formatSelect = document.getElementById(`format-${videoId}`);
+      const downloadBtn = formatSelect.parentElement.querySelector('.download-btn');
+      const progressContainer = document.getElementById(`progress-container-${videoId}`);
+      const progressFill = document.getElementById(`progress-fill-${videoId}`);
+      const progressText = document.getElementById(`progress-text-${videoId}`);
+      const downloadLink = document.getElementById(`download-link-${videoId}`);
+      
+      const format = formatSelect.value;
+
+      // Update UI
+      downloadBtn.disabled = true;
+      downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Starting...</span>';
+      progressContainer.style.display = 'block';
+      downloadLink.style.display = 'none';
+
+      try {
+        const response = await fetch('/download', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: url, format: format })
+        });
+
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+          simulateProgress(videoId, title, progressFill, progressText, downloadLink, downloadBtn);
+        } else {
+          throw new Error(data.message || 'Download failed');
+        }
+      } catch (error) {
+        console.error('Download error:', error);
+        progressText.textContent = '❌ Download failed';
+        progressText.style.color = '#dc3545';
+        downloadBtn.disabled = false;
+        downloadBtn.innerHTML = '<i class="fas fa-download"></i><span>Retry</span>';
+      }
+    }
+
+    function simulateProgress(videoId, title, progressFill, progressText, downloadLink, downloadBtn) {
+      let progress = 0;
+      
+      const progressInterval = setInterval(() => {
+        if (progress < 95) {
+          progress += Math.random() * 8;
+          const currentProgress = Math.min(progress, 95);
+          progressFill.style.width = currentProgress + '%';
+          progressText.textContent = `Downloading... ${Math.round(currentProgress)}%`;
+        }
+      }, 500);
+
+      // Check for completion
+      const checkInterval = setInterval(async () => {
+        try {
+          const response = await fetch('/check-completed');
+          const data = await response.json();
+          
+          if (data.status === 'finished') {
+            clearInterval(progressInterval);
+            clearInterval(checkInterval);
+            
+            // Complete the progress
+            progressFill.style.width = '100%';
+            progressText.textContent = '✅ Download complete!';
+            progressText.style.color = '#28a745';
+            
+            // Show download link
+            const linkElement = downloadLink.querySelector('a');
+            linkElement.href = data.path;
+            downloadLink.style.display = 'block';
+            
+            // Reset button
+            downloadBtn.disabled = false;
+            downloadBtn.innerHTML = '<i class="fas fa-check"></i><span>Complete</span>';
+            downloadBtn.style.background = 'linear-gradient(45deg, #28a745, #20c997)';
+            
+            // Show success message
+            showSuccess('Download completed successfully!');
+          }
+        } catch (error) {
+          // Continue checking silently
+        }
+      }, 2000);
+    }
+
+    function showError(message) {
+      const container = document.getElementById('searchResults');
+      container.innerHTML = `
+        <div class="error-message fade-in">
+          <i class="fas fa-exclamation-triangle"></i>
+          <strong>Error:</strong> ${message}
+        </div>
+      `;
+    }
+
+    function showSuccess(message) {
+      const container = document.getElementById('searchResults');
+      const successDiv = document.createElement('div');
+      successDiv.className = 'success-message fade-in';
+      successDiv.innerHTML = `
+        <i class="fas fa-check-circle"></i>
+        <strong>Success:</strong> ${message}
+      `;
+      
+      container.insertBefore(successDiv, container.firstChild);
+      
+      // Remove after 5 seconds
+      setTimeout(() => {
+        if (successDiv.parentNode) {
+          successDiv.remove();
+        }
+      }, 5000);
+    }
+
+    // Handle Enter key in search input
+    document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchVideos(e);
+      }
+    });
+
+    // Auto-focus search input
+    document.getElementById('searchQuery').focus();
+  </script>
+</body>
+</html>
