@@ -280,36 +280,56 @@
 
   <script>
     const downloadQueue = {}; // track downloads by sanitized id
+    let isSearching = false;
+    let isDownloading = false;
 
     function sanitizeId(text) {
       return text.replace(/\W/g, '_').toLowerCase();
     }
 
     async function searchVideos() {
+      if (isSearching) return;
+      
       const queryInput = document.getElementById('searchQuery');
+      const searchButton = document.getElementById('searchButton');
       const query = queryInput.value.trim();
+      
       if (!query) {
         alert('Please enter a search query.');
         queryInput.focus();
         return;
       }
+      
+      isSearching = true;
+      searchButton.disabled = true;
+      searchButton.innerHTML = '🔍 Searching...';
+      
       const resultsContainer = document.getElementById('searchResults');
       resultsContainer.innerHTML = `<p style="font-style: italic; color:#666;">Searching for "${query}"...</p>`;
+      
       try {
         const response = await fetch('/search', {
           method: 'POST',
-          body: new URLSearchParams({ 'query': query }),
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: query })
         });
+        
         const data = await response.json();
+        
         if (data.status === 'success') {
           displaySearchResults(data.results);
         } else {
-          resultsContainer.innerHTML = `<p style="color:#ff6b6b;">❌ ${data.message}</p>`;
+          resultsContainer.innerHTML = `<p style="color:#ff6b6b;">❌ ${data.message || 'Search failed'}</p>`;
         }
       } catch (err) {
-        resultsContainer.innerHTML = `<p style="color:#ff6b6b;">❌ Network or server error.</p>`;
+        resultsContainer.innerHTML = `<p style="color:#ff6b6b;">❌ Network error. Please check your connection.</p>`;
         console.error(err);
+      } finally {
+        isSearching = false;
+        searchButton.disabled = false;
+        searchButton.innerHTML = '🔍 Search';
       }
     }
 
@@ -348,6 +368,11 @@
     }
 
     function startDownload(url, videoId, title) {
+      if (isDownloading) {
+        alert('Please wait for the current download to complete.');
+        return;
+      }
+      
       const formatSelect = document.getElementById(`format-${videoId}`);
       const format = formatSelect.value;
       const message = document.getElementById(`message-${videoId}`);
@@ -355,6 +380,7 @@
       const container = document.getElementById(`progress-container-${videoId}`);
       const viewBtn = document.getElementById(`view-button-${videoId}`);
 
+      isDownloading = true;
       message.textContent = "Starting download...";
       container.style.display = "block";
       bar.style.width = "0%";
@@ -364,26 +390,48 @@
 
       fetch('/download', {
         method: 'POST',
-        body: new URLSearchParams({ 'url': url, 'format': format }),
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-      }).then(() => {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: url, format: format })
+      }).then(response => response.json()).then(data => {
+        if (data.status === 'success') {
         simulateProgress(videoId, message, bar, viewBtn, title);
-      }).catch(() => {
+        } else {
+          throw new Error(data.message || 'Download failed');
+        }
+      }).catch((error) => {
+        console.error('Download error:', error);
         message.textContent = "❌ Failed to start download.";
+        container.style.display = "none";
+        isDownloading = false;
       });
     }
 
     function simulateProgress(videoId, message, bar, viewBtn, title) {
       let progress = 0;
+      let attempts = 0;
+      const maxAttempts = 60; // 5 minutes max
+      
       const interval = setInterval(() => {
         if (progress < 98) {
-          progress += Math.random() * 5;
+          progress += Math.random() * 3 + 1;
           bar.style.width = Math.min(progress, 98) + "%";
           updateQueueProgress(title, progress);
         }
-      }, 400);
+      }, 800);
 
       const checkInterval = setInterval(() => {
+        attempts++;
+        
+        if (attempts > maxAttempts) {
+          clearInterval(interval);
+          clearInterval(checkInterval);
+          message.textContent = "❌ Download timeout. Please try again.";
+          isDownloading = false;
+          return;
+        }
+        
         fetch('/check-completed')
           .then(res => res.json())
           .then(data => {
@@ -392,15 +440,17 @@
               clearInterval(checkInterval);
               bar.style.width = "100%";
               message.textContent = "✅ Download complete!";
+              message.style.color = "#4caf50";
               viewBtn.href = data.path;
               viewBtn.style.display = "inline-block";
               updateQueueProgress(title, 100, data.path);
+              isDownloading = false;
             }
           })
-          .catch(() => {
-            // Ignore fetch errors silently
+          .catch((error) => {
+            console.error('Check completed error:', error);
           });
-      }, 2500);
+      }, 3000);
     }
 
     function addToQueue(title, url) {
@@ -439,6 +489,16 @@
         link.style.display = "inline";
       }
     }
+    
+    // Add Enter key support for search
+    document.getElementById('searchQuery').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        searchVideos();
+      }
+    });
+    
+    // Auto-focus search input
+    document.getElementById('searchQuery').focus();
   </script>
 
 </body>

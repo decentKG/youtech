@@ -6,13 +6,13 @@ const fs = require('fs');
 const cors = require('cors');
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+app.use(express.static('.'));
 
 // Create downloads directory
 const downloadsDir = path.join(__dirname, 'downloads');
@@ -21,11 +21,12 @@ if (!fs.existsSync(downloadsDir)) {
 }
 
 // Store for completed downloads
-const completedDownloads = new Map();
+let completedDownloads = [];
+let currentDownload = null;
 
 // Serve the main page
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Search endpoint
@@ -49,7 +50,11 @@ app.post('/search', async (req, res) => {
                 const video = {
                     title: info.videoDetails.title,
                     url: query,
-                    thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url
+                    thumbnail: info.videoDetails.thumbnails && info.videoDetails.thumbnails.length > 0 
+                        ? info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url
+                        : 'https://via.placeholder.com/320x180?text=No+Thumbnail',
+                    duration: info.videoDetails.lengthSeconds,
+                    views: info.videoDetails.viewCount
                 };
                 
                 return res.json({
@@ -66,24 +71,36 @@ app.post('/search', async (req, res) => {
         }
 
         // Search YouTube
-        const searchResults = await ytsr(query, { limit: 20 });
-        
-        const videos = searchResults.items
-            .filter(item => item.type === 'video')
-            .slice(0, 12)
-            .map(video => ({
-                title: video.title,
-                url: video.url,
-                thumbnail: video.bestThumbnail?.url || video.thumbnails?.[0]?.url || ''
-            }));
+        try {
+            const searchResults = await ytsr(query, { limit: 20 });
+            
+            const videos = searchResults.items
+                .filter(item => item.type === 'video' && item.url)
+                .slice(0, 12)
+                .map(video => ({
+                    title: video.title || 'Unknown Title',
+                    url: video.url,
+                    thumbnail: video.bestThumbnail?.url || 
+                              (video.thumbnails && video.thumbnails.length > 0 ? video.thumbnails[0].url : '') ||
+                              'https://via.placeholder.com/320x180?text=No+Thumbnail',
+                    duration: video.duration || 'Unknown',
+                    views: video.views || 0
+                }));
 
-        res.json({
-            status: 'success',
-            results: videos
-        });
+            res.json({
+                status: 'success',
+                results: videos
+            });
+        } catch (searchError) {
+            console.error('Search error:', searchError);
+            res.status(500).json({
+                status: 'error',
+                message: 'Search failed. YouTube might be blocking requests. Please try again later.'
+            });
+        }
 
     } catch (error) {
-        console.error('Search error:', error);
+        console.error('General search error:', error);
         res.status(500).json({
             status: 'error',
             message: 'Search failed. Please try again.'
@@ -110,6 +127,19 @@ app.post('/download', async (req, res) => {
             });
         }
 
+        // Check if video is available
+        try {
+            const info = await ytdl.getInfo(url);
+            if (!info) {
+                throw new Error('Video not found');
+            }
+        } catch (error) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Video not available or restricted'
+            });
+        }
+
         // Start download process
         downloadVideo(url, format || 'video');
         
@@ -129,17 +159,15 @@ app.post('/download', async (req, res) => {
 
 // Check completed downloads
 app.get('/check-completed', (req, res) => {
-    const lastDownload = completedDownloads.get('last');
-    
-    if (lastDownload) {
+    if (currentDownload && currentDownload.completed) {
+        const download = currentDownload;
+        currentDownload = null; // Clear after sending
+        
         res.json({
             status: 'finished',
-            filename: lastDownload.filename,
-            path: `/download/${lastDownload.filename}`
+            filename: download.filename,
+            path: `/download/${download.filename}`
         });
-        
-        // Clear the completed download after sending
-        completedDownloads.delete('last');
     } else {
         res.json({
             status: 'pending'
@@ -153,11 +181,16 @@ app.get('/download/:filename', (req, res) => {
     const filePath = path.join(downloadsDir, filename);
     
     if (fs.existsSync(filePath)) {
-        res.download(filePath, filename, (err) => {
-            if (err) {
-                console.error('Download error:', err);
-                res.status(500).send('Error downloading file');
-            }
+        // Set proper headers for download
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Type', 'application/octet-stream');
+        
+        const fileStream = fs.createReadStream(filePath);
+        fileStream.pipe(res);
+        
+        fileStream.on('error', (err) => {
+            console.error('File stream error:', err);
+            res.status(500).send('Error downloading file');
         });
     } else {
         res.status(404).send('File not found');
@@ -167,54 +200,106 @@ app.get('/download/:filename', (req, res) => {
 // Download function
 async function downloadVideo(url, format) {
     try {
+        console.log(`Starting download: ${url}, format: ${format}`);
+        
         const info = await ytdl.getInfo(url);
-        const title = info.videoDetails.title.replace(/[^\w\s-]/g, '').trim();
+        const title = info.videoDetails.title
+            .replace(/[^\w\s-]/g, '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .substring(0, 100); // Limit filename length
         
         let filename;
-        let stream;
+        let downloadOptions;
         
         if (format === 'audio') {
             filename = `${title}.mp3`;
-            stream = ytdl(url, {
+            downloadOptions = {
                 filter: 'audioonly',
-                quality: 'highestaudio'
-            });
+                quality: 'highestaudio',
+                format: 'mp3'
+            };
         } else {
             filename = `${title}.mp4`;
-            stream = ytdl(url, {
-                filter: 'videoandaudio',
+            downloadOptions = {
+                filter: format => format.container === 'mp4' && format.hasVideo && format.hasAudio,
                 quality: 'highest'
-            });
+            };
         }
         
         const filePath = path.join(downloadsDir, filename);
+        
+        // Set current download status
+        currentDownload = {
+            filename: filename,
+            title: title,
+            completed: false,
+            progress: 0
+        };
+        
+        console.log(`Downloading to: ${filePath}`);
+        
+        const stream = ytdl(url, downloadOptions);
         const writeStream = fs.createWriteStream(filePath);
         
         stream.pipe(writeStream);
         
+        stream.on('progress', (chunkLength, downloaded, total) => {
+            const percent = downloaded / total;
+            if (currentDownload) {
+                currentDownload.progress = Math.round(percent * 100);
+            }
+            console.log(`Download progress: ${Math.round(percent * 100)}%`);
+        });
+        
         writeStream.on('finish', () => {
             console.log(`Download completed: ${filename}`);
-            completedDownloads.set('last', {
-                filename: filename,
-                title: title
-            });
+            if (currentDownload) {
+                currentDownload.completed = true;
+                currentDownload.progress = 100;
+            }
         });
         
         writeStream.on('error', (error) => {
             console.error('Write stream error:', error);
+            if (currentDownload) {
+                currentDownload.error = error.message;
+            }
         });
         
         stream.on('error', (error) => {
             console.error('Download stream error:', error);
+            if (currentDownload) {
+                currentDownload.error = error.message;
+            }
         });
         
     } catch (error) {
         console.error('Download function error:', error);
+        if (currentDownload) {
+            currentDownload.error = error.message;
+        }
     }
 }
 
+// Error handling middleware
+app.use((error, req, res, next) => {
+    console.error('Server error:', error);
+    res.status(500).json({
+        status: 'error',
+        message: 'Internal server error'
+    });
+});
+
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`Access the app at: http://localhost:${PORT}`);
+    console.log(`🚀 YouTube Downloader Server running on port ${PORT}`);
+    console.log(`📱 Access the app at: http://localhost:${PORT}`);
+    console.log(`📁 Downloads will be saved to: ${downloadsDir}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('\n🛑 Shutting down server...');
+    process.exit(0);
 });
