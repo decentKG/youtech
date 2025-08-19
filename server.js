@@ -1,6 +1,6 @@
 const express = require('express');
-const ytdl = require('ytdl-core');
-const ytsr = require('ytsr');
+const ytdl = require('@distube/ytdl-core');
+const YouTube = require('youtube-sr').default;
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
@@ -72,20 +72,16 @@ app.post('/search', async (req, res) => {
 
         // Search YouTube
         try {
-            const searchResults = await ytsr(query, { limit: 20 });
-            
-            const videos = searchResults.items
-                .filter(item => item.type === 'video' && item.url)
-                .slice(0, 12)
-                .map(video => ({
-                    title: video.title || 'Unknown Title',
-                    url: video.url,
-                    thumbnail: video.bestThumbnail?.url || 
-                              (video.thumbnails && video.thumbnails.length > 0 ? video.thumbnails[0].url : '') ||
-                              'https://via.placeholder.com/320x180?text=No+Thumbnail',
-                    duration: video.duration || 'Unknown',
-                    views: video.views || 0
-                }));
+            const searchResults = await YouTube.search(query, { limit: 10, type: 'video' });
+            const videos = searchResults.map(video => ({
+                id: video.id,
+                title: video.title,
+                url: video.url,
+                thumbnail: video.thumbnail?.displayThumbnailURL('maxresdefault') || '/api/placeholder/320/180',
+                duration: video.durationFormatted,
+                views: video.views,
+                author: video.channel?.name || 'Unknown'
+            }));
 
             res.json({
                 status: 'success',
