@@ -12,8 +12,11 @@
     "@distube/ytdl-core": "^4.16.12",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.0.1",
     "fluent-ffmpeg": "^2.1.2",
+    "helmet": "^8.1.0",
     "path": "^0.12.7",
+    "sanitize-filename": "^1.6.3",
     "youtube-sr": "^4.3.12"
   },
   "engines": {
