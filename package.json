@@ -9,10 +9,12 @@
     "test": "node server.js"
   },
   "dependencies": {
+    "@distube/ytdl-core": "^4.16.12",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "fluent-ffmpeg": "^2.1.2",
-    "path": "^0.12.7"
+    "path": "^0.12.7",
+    "youtube-sr": "^4.3.12"
   },
   "engines": {
     "node": ">=14.0.0"
